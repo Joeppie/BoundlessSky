@@ -12,6 +12,11 @@ BoundlessSky started as a 3D recreation of the engine. The direction changed (20
 the first version is a **faithful 2D reproduction of the entire game**, and the 3D presentation
 is added later as a mode/module/mod on top of the 2D core — not a rewrite.
 
+The target is **complete parity**: everything the reference game does, BoundlessSky does.
+Parity is what makes the submodule workflow meaningful — when we update the pin to a newer
+stable release, we re-verify and keep the game working, because we reproduce the whole game
+and not a slice of it.
+
 ## 2. Direction: 2D first, 3D later
 
 Owner direction, 2026-11-23:
@@ -19,18 +24,23 @@ Owner direction, 2026-11-23:
 - **Phase 1 — faithful 2D reproduction.** Get the game running in its most basic setup: a
   literal-enough port of the reference's code systems that the whole game works the same as
   the reference.
-- **Phase 2 — 3D as a mode/module/mod.** Once the 2D game runs and matches the reference,
-  add 3D presentation as a mode/module/mod layered on the 2D core. This is a layer over
-  the 2D game, not a separate engine and not a rewrite.
-- **Phase 3+ — 3D spacecraft.** 3D versions of the ships and their presentation, added
-  after the 2D core is stable.
+- **Phase 2 — 3D as an optional mode/module/mod.** Once the 2D game runs and matches the
+  reference, add 3D presentation as an optional mode/module/mod layered on the 2D core.
+  This is a layer over the 2D game, not a separate engine and not a rewrite. 3D is never
+  load-bearing: the game must run fully in 2D, and 3D is the option to run it fully 3D.
+- **Phase 3+ — 3D spacecraft and full 3D coverage.** 3D versions of the ships and their
+  presentation, added after the 2D core is stable. The goal is a fully 3D mode that covers
+  the same game — the optional full-3D mode, never a rewrite.
 
 Why 2D first:
 
 - A 2D reproduction is the baseline that proves the port is faithful — we compare it
   against the reference, which is right there in the submodule.
-- 3D as a module/mode/mod keeps the gameplay core identical to the 2D one and avoids
-  rewriting logic per presentation.
+- Complete parity is what makes the update path safe: bumping the submodule to a newer
+  stable release must keep the game working, and the only way to prove that is a game that
+  reproduces the whole game, not a slice of it.
+- 3D as an optional mode/module/mod keeps the gameplay core identical to the 2D one and
+  avoids rewriting logic per presentation.
 
 ## 3. Faithfulness contract
 
@@ -85,15 +95,19 @@ in this phase.
 
 ## 5. 3D later — mode/module/mod
 
-Phase 2 changes the presentation, not the game:
+Phase 2 changes the presentation, not the game. 3D is **optional**, not a rewrite:
 
 - 3D is a **mode/module/mod**: a layer over the 2D core that changes how the scene and
   spacecraft are presented. The 2D game stays the gameplay baseline.
-- Initial 3D scope (**open**): ships as 3D models (flight view, ship viewer), then
-  ship-related visuals (engine flares, effects), then other presentations (asteroid/planet
-  views are **out of scope** initially). All presentation, no gameplay changes.
+- The player chooses: **fully 2D** (the game as it always runs) or **fully 3D** (the same
+  game, fully presented in 3D). 3D is never load-bearing — the game runs without it.
+- Coverage grows in stages: ships first, then ship-related visuals. Other presentations
+  (asteroid/planet views) are **out of scope** initially — **open**.
+- Completing 3D means the optional mode covers the whole game at the same parity level as
+  2D; until then, the 3D mode is partial by design, and the 2D mode remains the
+  complete baseline.
 - 3D spacecraft artwork: generated or modeled per the reference's ships, later — **open**
-  (see §9).
+  (see §9). How 3D is toggled (startup flag, preference, in-game switch) is **open**.
 
 ## 6. Repository layout
 
@@ -119,7 +133,9 @@ BoundlessSky/
   (build, run, behavior) before keeping it. The submodule SHA is recorded in the outer
   repo, so every checkout of BoundlessSky is byte-identical against the reference.
 - **Verifying updates**: at each pin bump, confirm the reference still builds and runs on
-  the same machine, and that the game's behavior still matches what we port.
+  the same machine, and that the game's behavior still matches what we port — in 3D mode
+  too, once 3D exists. Complete parity is the point: a pin bump that breaks the game is
+  caught and rolled back, not kept.
 
 ## 8. Content and assets
 
@@ -184,3 +200,5 @@ it changes the game's behavior:
 | 2026-11-23 | Scope is the procedures to get the game running in its most basic setup — a relatively literal port of many code systems. |
 | 2026-11-23 | Reference: `endless-sky/endless-sky` submodule, pinned to v0.11.4 (latest stable, 2026-10-31). Never edit in place; update as releases come. |
 | 2026-11-23 | Sound effects, artwork and dialogue are supported in full, from Phase 1. |
+| 2026-11-23 | Complete parity is the ideal: BoundlessSky reproduces the entire game, so submodule updates can be applied and the game kept working — re-verify and keep, not keep-and-hope. |
+| 2026-11-23 | 3D is optional: the player chooses fully 2D or fully 3D; 3D never changes gameplay and is never a rewrite. |

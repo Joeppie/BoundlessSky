@@ -3,8 +3,10 @@
 A faithful reproduction of the Endless Sky game: same logic, dialogue, quests and
 systems, rebuilt in our own codebase.
 
-The project starts as a 2D reproduction of the entire game. A 3D presentation is added
-later as a mode/module/mod layered on the 2D core — not a rewrite.
+The project starts as a faithful 2D reproduction of the entire game — complete parity:
+everything the reference game does, BoundlessSky does. A 3D presentation is added later
+as an optional mode/module/mod layered on the 2D core — never load-bearing, never a
+rewrite. The ideal is a fully 3D mode, kept as an option: fully 2D or fully 3D.
 
 [Endless Sky](https://github.com/endless-sky/endless-sky) is the reference implementation
 and the source of all content we port: its code is GPL-3.0, and its artwork and sounds
