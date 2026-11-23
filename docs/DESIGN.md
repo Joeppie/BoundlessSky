@@ -8,6 +8,9 @@ undecided question, not an answer. Distinct changes wait until this document set
 BoundlessSky is a reproduction of Endless Sky — the same game, not a new one: the same
 logic, dialogue, quests and systems. The engine is **re-implemented in TypeScript**
 (statically compiled, not webassembly) — not a fork of the reference's C++ engine.
+It renders with **Three.js on a canvas**; shaders are used for special effects, but the
+first milestones are sprites only. See [SCAFFOLD.md](SCAFFOLD.md) for the
+implementation list.
 
 BoundlessSky started as a 3D recreation of the engine. The direction changed (2026-11-23):
 the first version is a **faithful 2D reproduction of the entire game**, and the 3D presentation
@@ -164,9 +167,8 @@ Rendering notes:
 
 - **Asteroids.** The reference ships ~54–60 pre-rotated spin-stage PNGs per asteroid class
   (e.g. `images/asteroid/iron/spin-00.png` … `spin-59.png`) and picks a stage per frame.
-  We do not re-use that: we rotate a single sprite ourselves, at draw time — any 2D
-  renderer (canvas and friends) rotates sprites natively, so the many-stage PNG sets are
-  dead weight.
+  We do not re-use that: we rotate a single sprite ourselves, at draw time — Three.js
+  rotates sprites via texture transforms, so the many-stage PNG sets are dead weight.
 - **Ships and other sprites.** Reuse the 2D sprites as-is for what is needed in Phase 1
   (ships, bodies, effects, UI icons). Rotating them by us is the same approach as asteroids.
 - **Later concern.** Asteroids — and eventually the ships — may be drawn as a simple
@@ -177,14 +179,14 @@ Rendering notes:
 
 Resolved — see the decision log (§11): the re-implementation is in TypeScript;
 the engine is re-implemented (not a fork of the reference's C++); the app lives in this
-repo. The following are open:
+repo; the renderer is Three.js on a canvas (sprites initially, shaders later). The
+following are open:
 
 1. **Runtime target.** What the statically compiled TypeScript builds into: a browser
    app, a desktop app (native, Electron/Tauri-class), both — the build is settled, the
    target is not. This decides packaging and distribution, not the engine.
-2. **2D renderer.** Canvas 2D, a 2D rendering library, or something else — this decides
-   how sprites, rotation, effects and the UI are drawn. **Open**; decide before the
-   first engine code.
+2. **2D renderer.** **Resolved** — Three.js on a canvas; shaders for special effects,
+   sprites initially. See §11.
 3. **App layout convention.** Where the app source lives in this repo (e.g. `src/`,
    `app/`), and how it is wired to the submodule's content. Open.
 4. **3D toggle mechanism.** Startup flag, preference, in-game switch — open (3D phase).
@@ -227,3 +229,5 @@ it changes the game's behavior:
 | 2026-11-23 | Engine is re-implemented in TypeScript, statically compiled — not webassembly, not the reference C++ engine reused. |
 | 2026-11-23 | The app lives in this repo; the submodule stays the read-only reference; BoundlessSky serves the same content from it. |
 | 2026-11-23 | Artwork: 2D sprites reused initially (asteroids and ships included) for what is needed. Asteroids/ships are rotated by us at draw time — the reference's per-rotation spin-stage PNG sets are not re-used. Asteroid and ship 3D-rendered sprites are a later concern. |
+| 2026-11-23 | Renderer: Three.js on a canvas, with shaders reserved for special effects. Initially sprites only — no custom shaders. Later: 3D models → a full 3D mode or a pseudo-2D mode (classical gameplay loop intact). |
+| 2026-11-23 | Code organized like the reference (same module names, same responsibilities), with an implementation list in [SCAFFOLD.md](SCAFFOLD.md); Milestone 1 = parsing, dialogue, ship selection, the planet menu. |
