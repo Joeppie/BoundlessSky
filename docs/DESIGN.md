@@ -185,26 +185,24 @@ following are open:
 1. **Runtime target.** What the statically compiled TypeScript builds into: a browser
    app, a desktop app (native, Electron/Tauri-class), both — the build is settled, the
    target is not. This decides packaging and distribution, not the engine.
-2. **2D renderer.** **Resolved** — Three.js on a canvas; shaders for special effects,
-   sprites initially. See §11.
-3. **App layout convention.** Where the app source lives in this repo (e.g. `src/`,
+2. **App layout convention.** Where the app source lives in this repo (e.g. `src/`,
    `app/`), and how it is wired to the submodule's content. Open.
-4. **3D toggle mechanism.** Startup flag, preference, in-game switch — open (3D phase).
-5. **3D content pipeline.** Ship models: generated or hand-modeled; how 3D fits the same
+3. **3D toggle mechanism.** Startup flag, preference, in-game switch — open (3D phase).
+4. **3D content pipeline.** Ship models: generated or hand-modeled; how 3D fits the same
    missions/data; when asteroid/ship 3D-rendered sprites replace the 2D sprites. Open —
    do not decide in Phase 1.
-6. **Outer repo LICENSE.** The engine is a fresh TypeScript re-implementation, not a
+5. **Outer repo LICENSE.** The engine is a fresh TypeScript re-implementation, not a
    derivation of the reference's C++. The artwork, sounds and dialogue come from the
    reference and carry its licenses (artwork public domain or CC; the reference's code is
    GPL-3.0). We need an explicit LICENSE before any distribution — not decided here.
-7. **Submodule update cadence.** Every stable release, or on demand. Open (leaning on
+6. **Submodule update cadence.** Every stable release, or on demand. Open (leaning on
    demand: we only bump when the reference changes something we care about).
-8. **Platforms.** Linux now; Windows and macOS how soon. Open.
-9. **Testing strategy.** Compare BoundlessSky against the reference (behavior diff on a
+7. **Platforms.** Linux now; Windows and macOS how soon. Open.
+8. **Testing strategy.** Compare BoundlessSky against the reference (behavior diff on a
    fixed set of scenarios) vs. port the reference's own tests. Open.
-10. **Artwork/sounds distribution.** The reference ships everything; BoundlessSky serves
-    the same files from the submodule. Fine as long as we keep the reference layout —
-    open.
+9. **Artwork/sounds distribution.** The reference ships everything; BoundlessSky serves
+   the same files from the submodule. Fine as long as we keep the reference layout —
+   open.
 
 ## 10. Deliberate changes (deviation log)
 
