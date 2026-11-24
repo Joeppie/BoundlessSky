@@ -21,7 +21,21 @@ are public domain or under permissive Creative Commons licenses.
 
 ## Status
 
-Early design stage. Nothing is built yet; see [docs/DESIGN.md](docs/DESIGN.md) for the
-scope, the submodule workflow and the open questions, and [docs/SCAFFOLD.md](docs/SCAFFOLD.md)
-for the implementation list and the first milestone (parsing → dialogue → ship selection →
-planet menu).
+Milestone 1 is underway: the loading/boot flow, the main menu, the scenario picker, the
+start conversation (scene, text, name prompt), the landing splash, the planet menu (the
+landing at the start planet — landscape image, description with live conditions, the
+Shipyard button, Depart back to the menu) and the shipyard (buy a ship from the "Basic
+Ships" stock) all work, as does the first quest (the "Intro [0]" mission: on-offer
+conversation, accept → quest-accepted splash, or decline — both return to the planet menu).
+World, flight and takeoff are out of scope until the milestone lands — see
+[docs/SCAFFOLD.md](docs/SCAFFOLD.md). Verified with the Vitest unit suite (`npx vitest run`)
+and the Playwright e2e suite (`npx playwright test`); the reference's own unit tests are
+ported to TypeScript.
+
+## Commands
+
+- `npm run dev` — dev server on 0.0.0.0:5173
+- `npm run typecheck` — `tsc --noEmit`
+- `npx vitest run` — unit tests (Vitest)
+- `npx playwright test` — e2e suite (Playwright, port 5174)
+- `npm run build` — production build

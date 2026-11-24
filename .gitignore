@@ -1,0 +1,29 @@
+# Dependencies & build artifacts
+node_modules/
+dist/
+*.local
+
+# Editor/OS noise
+.DS_Store
+*.swp
+*~
+
+# Credentials & secrets — never commit these
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+*.jks
+*.keystore
+secrets/
+
+# Scratch / temp
+*.tmp
+*.tmp.mjs
+
+# Playwright artifacts
+test-results/
+playwright-report/

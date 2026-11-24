@@ -89,12 +89,16 @@ where the player buys/selects the first ship.
 | 4 | `ConversationPanel`: the node flow, choice buttons, name prompt, scene display, log lines | `src/dialog/` | the default start conversation plays to completion (name prompt → "There are three ship models…") |
 | 5 | Start flow: `StartConditions` (load scenarios), `StartConditionsPanel` (list, descriptions, click/enter), `PilotProfile`, `PlayerInfo.New` | `src/game/`, `src/ui/` | the default start scenario is selectable and starts the player |
 | 6 | Ship selection: the start scenario's ships, or `ShipyardPanel` (list ships in the scenario's/planet's stock, buy one) | `src/game/`, `src/ui/`, `src/ship/` | the default start opens the shipyard (no ships) and a ship can be bought |
+| 6b | The first quest: the "Intro [0]" mission — the on-offer conversation, offer/accept conditions (`has "start: default"`, `"total ships" > "ships: Fighter" + "ships: Drone"`), accept → on-accept logs + `"Intro [0]: active"` condition, decline → `"Intro [0]: declined"`, and the quest-accepted splash | `src/game/`, `src/data/`, `src/ui/` | the default start, after buying the first ship, offers the quest; accept → quest-accepted splash, decline → menu |
 | 7 | Flight shell: `MainPanel` (a working game view — a starfield + camera + sprite drawing skeleton), the landing check, the auto-open of `PlanetPanel` | `src/game/`, `src/flight/`, `src/world/`, `src/ui/` | the player is at the start planet; the planet panel opens automatically |
-| 8 | Planet menu: `PlanetPanel` (description, landscape image, close back to the map) | `src/ui/` | the planet menu opens on the start planet (New Boston for the default start) with its description |
+| 8 | Planet menu: `PlanetPanel` (description, landscape image, close back to the map) | `src/ui/`, `src/game/`, `src/data/` | the planet menu opens on the start planet (New Boston for the default start) with its landscape, its description (conditions evaluated against the live player) and the Shipyard button |
 
-Verification: all four pieces — parsing, dialogue, ship selection, planet menu — work
-end-to-end with the reference as baseline: the default start conversation plays, the
-player buys a ship and lands, and the planet menu opens.
+Verification: parsing, dialogue, the shipyard, the first quest and the landing→planet-menu
+tail work end-to-end with the reference as baseline — the default start conversation plays,
+the landing splash opens the planet menu (landscape, description, Shipyard button — Depart
+back to the menu), the player buys a ship from the "Basic Ships" stock, the intro mission is
+offered (accept → quest-accepted splash; decline) and the player returns to the planet menu.
+Not yet: a real map/MainPanel (the landing splash stands in for it), outfits, takeoff.
 
 ## 4. Milestones 2–4 — the rest (the parity list)
 
@@ -145,5 +149,9 @@ the optional full-3D mode. Classical gameplay loop stays intact.
 - Parity against the reference (v0.11.4): build the reference, compare behavior. The
   reference's own `tests/` is the comparison baseline (unit + integration).
 - Milestone 1 is verified end-to-end with the default start scenario: the game boots, the
-  start screen lists the scenarios, the default start plays its conversation, a ship is
-  purchased, the player lands, and the planet menu opens.
+  start screen lists the scenarios, the default start plays its conversation, the player
+  buys a ship (the "Basic Ships" stock), the intro mission is offered, and the player
+  accepts (quest-accepted splash) or declines (menu). Not yet: the planet menu.
+- e2e (Playwright, `npx playwright test`) drives the accept and decline paths in a real
+  browser, including the planet-menu hop; the Vitest unit suite (`npx vitest run`, 154
+  tests) covers the parsers and state machines.
