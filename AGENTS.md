@@ -17,6 +17,10 @@ flight view in a separate branch. If main has moved, port the useful bits onto
 main's architecture (see `docs/RECONCILIATION.md`) — do not force-merge two
 architectures. New code is verified against main before it merges.
 
+New work gets a new session — fresh context, not a new branch on the previous
+session's worktree. A worktree is for isolated work, not milestone tracking.
+Stale branches are archived (`archive/<name>`), never left looking live.
+
 ## Hard rules
 
 - **Credential sweep before committing.** Nothing that shouldn't be committed

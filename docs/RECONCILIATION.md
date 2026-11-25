@@ -1,7 +1,7 @@
-# Reconciliation — the feat/planet-menu-loop work vs. main
+# Reconciliation — the archived branch `archive/feat-planet-menu-loop` vs. main
 
 Date: 2026-11-24/25. This document is the record of what happened when the
-unmerged work on `feat/planet-menu-loop` was reconciled with main, and it is
+the unmerged work on the archived branch `archive/feat-planet-menu-loop` was reconciled with main, and it is
 the standing rule for the next time.
 
 ## What happened
@@ -14,7 +14,7 @@ was built on — a 3D persistent `FlightView` (`src/render/FlightScene.ts`,
 `PlayerInfoScreen`, `FlightSim`, a browsing-only `OutfitterScreen`, and a
 screen-per-view flow.
 
-The two never met. The branch at `feat/planet-menu-loop` carried its own
+The two never met. The branch at `archive/feat-planet-menu-loop` carried its own
 flight view, fight, mining, four planet-loop panels, a save system, and its
 own e2e/docs — ~9k lines across ~55 files, including paths that both sides
 modified (`Game.ts`, `style.css`, `ShipyardScreen.ts`, `PlanetMenuScreen.ts`,
@@ -77,6 +77,30 @@ shortcoming to fix here — it is a scope/architecture call.
   the plane/SVG math.
 - The commit record (this document) so the branch trap is documented the next
   time it occurs.
+
+## How to prevent this (standing rule)
+
+The trap is this shape: a session lives in a worktree, gets a branch, builds
+a parallel architecture, and main advances without it. The next session finds
+a 55-file, ~9k-line divergence that cannot be merged mechanically.
+Prevention, in order:
+
+1. **New work = new session.** New features, new screens, new architecture —
+   give it its own session with fresh context, not a new branch on this
+   session's worktree. The owner wants new sessions to carry the new work.
+2. **Worktrees are for isolated work, not milestone tracking.** A worktree is
+   for parallel/isolated tasks that must not disturb the checked-out
+   architecture. A whole milestone is not that. The worktree is the
+   exception; main's checkout is the default.
+3. **One architecture per milestone.** If main has moved, port the useful
+   bits onto main's architecture (this document's method) — never a parallel
+   rebuild that then needs reconciliation.
+4. **Never silently force-merge two architectures.** If a branch cannot merge
+   cleanly: re-port the useful bits, or stop and ask.
+5. **Archive stale branches visibly.** A branch built on a stale checkout is
+   renamed (`archive/<name>`), not left as if it were live. The archived
+   branch keeps the commits as a record; nothing is lost, but it cannot
+   pretend to be the next branch.
 
 ## Standing rule
 
