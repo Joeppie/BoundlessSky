@@ -21,13 +21,18 @@ are public domain or under permissive Creative Commons licenses.
 
 ## Status
 
-Milestone 1 is underway: the loading/boot flow, the main menu, the scenario picker, the
-start conversation (scene, text, name prompt), the landing splash, the planet menu (the
-landing at the start planet — landscape image, description with live conditions, the
-Shipyard button, Depart back to the menu) and the shipyard (buy a ship from the "Basic
-Ships" stock) all work, as does the first quest (the "Intro [0]" mission: on-offer
-conversation, accept → quest-accepted splash, or decline — both return to the planet menu).
-World, flight and takeoff are out of scope until the milestone lands — see
+Milestone 1 (the start) is committed and verified: the loading/boot flow, the main menu, the
+scenario picker, the start conversation (scene, text, name prompt), the landing splash, the
+planet menu (landscape image, description with live conditions, the Shipyard/Outfitter/Player
+Info/Depart buttons), the shipyard (buy a ship from the planet's own stock) and the first
+quest (the "Intro [0]" mission: on-offer conversation, accept → quest-accepted splash, or
+decline). On top of it, the reference-screen tail is committed: the corner HUD (always-on
+top-right), the Player Info panel (Player Info + Ship Info tabs) and the Outfitter (the
+planet's stock with thumbnails), and a simplified in-system flight view (momentum, max
+speed from the real ship data, brake-to-warp, land-over-the-planet, jump-neighbor warp —
+see [docs/LIMITS.md](docs/LIMITS.md) for the honest limits).
+
+World, routes, the real map/MainPanel and 3D are out of scope — see
 [docs/SCAFFOLD.md](docs/SCAFFOLD.md). Verified with the Vitest unit suite (`npx vitest run`)
 and the Playwright e2e suite (`npx playwright test`); the reference's own unit tests are
 ported to TypeScript.

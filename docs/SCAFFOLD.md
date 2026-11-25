@@ -151,7 +151,8 @@ the optional full-3D mode. Classical gameplay loop stays intact.
 - Milestone 1 is verified end-to-end with the default start scenario: the game boots, the
   start screen lists the scenarios, the default start plays its conversation, the player
   buys a ship (the "Basic Ships" stock), the intro mission is offered, and the player
-  accepts (quest-accepted splash) or declines (menu). Not yet: the planet menu.
+  accepts (quest-accepted splash) or declines (menu). The corner HUD, Player Info, the
+  Outfitter and the flight view are committed on top of this (see docs/LIMITS.md).
 - e2e (Playwright, `npx playwright test`) drives the accept and decline paths in a real
-  browser, including the planet-menu hop; the Vitest unit suite (`npx vitest run`, 154
+  browser, including the planet-menu hop; the Vitest unit suite (`npx vitest run`, 183
   tests) covers the parsers and state machines.
