@@ -10,6 +10,13 @@ A faithful re-implementation of **Endless Sky v0.11.4** in TypeScript. See
 - `npx vitest run` — unit tests (Vitest)
 - `npm run build` — production build
 
+## Branch discipline
+
+One architecture per milestone: do not build a parallel copy of a screen or the
+flight view in a separate branch. If main has moved, port the useful bits onto
+main's architecture (see `docs/RECONCILIATION.md`) — do not force-merge two
+architectures. New code is verified against main before it merges.
+
 ## Hard rules
 
 - **Credential sweep before committing.** Nothing that shouldn't be committed
