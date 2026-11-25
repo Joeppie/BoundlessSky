@@ -1,11 +1,14 @@
 // The planet menu — the milestone-1 tail of the start flow: after the landing
 // splash, the player arrives at the start planet and the planet panel opens.
 //
-// Faithful-enough subset of the reference's PlanetPanel (endless-sky/source/
-// PlanetPanel.cpp + the "planet" interface): landscape image, description
-// paragraphs (with "to display" conditions evaluated against the live player
-// conditions), the planet's named shops (Shipyard) and Depart (back to the menu —
-// the map and takeoff are Milestone 2+).
+// Faithful to the reference's PlanetPanel (endless-sky/source/PlanetPanel.cpp +
+// the "planet" interface): landscape image on top, the description in the
+// center, a left column of service buttons and a right column of buttons —
+// Player Info, Shipyard, Outfitter and Depart — with the same visibility rules
+// (Depart active only when the player has a ship; Shipyard/Outfitter shown for
+// the planet's named shops). Tabs, the outfit details and the shipyard remain
+// honest: unimplemented panels (Spaceport, Bank, Trading, Job Board, Hire
+// Crew) are omitted rather than faked.
 
 import { createScreen } from './Panel';
 import type { Audio } from '../audio/Audio';
@@ -17,7 +20,10 @@ export interface PlanetMenuScreenOptions {
   player: PlayerInfo;
   // A fresh promise each call — the screen loads lazily, like the shipyard.
   loadPlanet: () => Promise<Planet>;
-  onShipyard: () => void;
+  // The shops of the planet that opened the button — never a hardcoded list.
+  onShipyard: (planet: Planet) => void;
+  onOutfitter: (planet: Planet) => void;
+  onPlayerInfo: () => void;
   onDepart: () => void;
 }
 
@@ -26,7 +32,9 @@ export class PlanetMenuScreen {
   private audio: Audio;
   private player: PlayerInfo;
   private loadPlanet: () => Promise<Planet>;
-  private onShipyard: () => void;
+  private onShipyard: (planet: Planet) => void;
+  private onOutfitter: (planet: Planet) => void;
+  private onPlayerInfo: () => void;
   private onDepart: () => void;
 
   private planet: Planet | null = null;
@@ -38,7 +46,9 @@ export class PlanetMenuScreen {
   private headerEl: HTMLElement;
   private landscapeEl: HTMLImageElement;
   private descriptionEl: HTMLElement;
+  private playerInfoButton: HTMLButtonElement;
   private shipyardButton: HTMLButtonElement;
+  private outfitterButton: HTMLButtonElement;
   private departButton: HTMLButtonElement;
 
   constructor(options: PlanetMenuScreenOptions) {
@@ -46,6 +56,8 @@ export class PlanetMenuScreen {
     this.player = options.player;
     this.loadPlanet = options.loadPlanet;
     this.onShipyard = options.onShipyard;
+    this.onOutfitter = options.onOutfitter;
+    this.onPlayerInfo = options.onPlayerInfo;
     this.onDepart = options.onDepart;
 
     this.element = createScreen('planet-menu-screen');
@@ -53,31 +65,48 @@ export class PlanetMenuScreen {
     const inner = document.createElement('div');
     inner.className = 'planet-menu-inner';
 
-    this.headerEl = document.createElement('div');
-    this.headerEl.className = 'planet-menu-header';
     this.landscapeEl = document.createElement('img');
     this.landscapeEl.className = 'planet-menu-landscape';
     this.landscapeEl.alt = '';
     this.landscapeEl.addEventListener('error', () => { this.landscapeEl.style.display = 'none'; });
-    this.descriptionEl = document.createElement('div');
-    this.descriptionEl.className = 'planet-menu-description';
 
-    const buttons = document.createElement('div');
-    buttons.className = 'planet-menu-buttons';
+    this.headerEl = document.createElement('div');
+    this.headerEl.className = 'planet-menu-header';
+
+    this.playerInfoButton = document.createElement('button');
+    this.playerInfoButton.type = 'button';
+    this.playerInfoButton.className = 'planet-menu-button planet-menu-button--left planet-menu-playerinfo';
+    this.playerInfoButton.innerHTML = 'Player Info';
+    this.playerInfoButton.addEventListener('mouseenter', () => this.audio.play('soft'));
+    this.playerInfoButton.addEventListener('click', () => { this.audio.play('normal'); this.onPlayerInfo(); });
 
     this.shipyardButton = document.createElement('button');
     this.shipyardButton.type = 'button';
-    this.shipyardButton.className = 'planet-menu-shipyard';
+    this.shipyardButton.className = 'planet-menu-button planet-menu-button--primary planet-menu-shipyard';
     this.shipyardButton.innerHTML = 'Shipyard';
     this.shipyardButton.addEventListener('mouseenter', () => this.audio.play('soft'));
     this.shipyardButton.addEventListener('click', () => {
+      const planet = this.planet;
+      if (!planet) return;
       this.audio.play('normal');
-      this.onShipyard();
+      this.onShipyard(planet);
+    });
+
+    this.outfitterButton = document.createElement('button');
+    this.outfitterButton.type = 'button';
+    this.outfitterButton.className = 'planet-menu-button planet-menu-button--primary planet-menu-outfitter';
+    this.outfitterButton.innerHTML = 'Outfitter';
+    this.outfitterButton.addEventListener('mouseenter', () => this.audio.play('soft'));
+    this.outfitterButton.addEventListener('click', () => {
+      const planet = this.planet;
+      if (!planet) return;
+      this.audio.play('normal');
+      this.onOutfitter(planet);
     });
 
     this.departButton = document.createElement('button');
     this.departButton.type = 'button';
-    this.departButton.className = 'planet-menu-depart';
+    this.departButton.className = 'planet-menu-button planet-menu-button--depart planet-menu-depart';
     this.departButton.innerHTML = '<span class="menu-key">Esc</span> Depart';
     this.departButton.addEventListener('mouseenter', () => this.audio.play('soft'));
     this.departButton.addEventListener('click', () => {
@@ -85,9 +114,22 @@ export class PlanetMenuScreen {
       this.onDepart();
     });
 
-    buttons.append(this.shipyardButton, this.departButton);
+    const leftCol = document.createElement('div');
+    leftCol.className = 'planet-menu-col planet-menu-col--left';
+    leftCol.appendChild(this.playerInfoButton);
 
-    inner.append(this.landscapeEl, this.headerEl, this.descriptionEl, buttons);
+    this.descriptionEl = document.createElement('div');
+    this.descriptionEl.className = 'planet-menu-center';
+
+    const rightCol = document.createElement('div');
+    rightCol.className = 'planet-menu-col planet-menu-col--right';
+    rightCol.append(this.shipyardButton, this.outfitterButton, this.departButton);
+
+    const grid = document.createElement('div');
+    grid.className = 'planet-menu-grid';
+    grid.append(leftCol, this.descriptionEl, rightCol);
+
+    inner.append(this.landscapeEl, this.headerEl, grid);
     this.element.appendChild(inner);
 
     this.load();
@@ -118,6 +160,8 @@ export class PlanetMenuScreen {
   }
 
   private render(): void {
+    const hasShip = this.player.ships.length > 0;
+
     if (this.loading || !this.planet) {
       this.landscapeEl.removeAttribute('src');
       this.landscapeEl.style.display = 'none';
@@ -140,14 +184,14 @@ export class PlanetMenuScreen {
         this.headerEl.appendChild(retry);
       }
       this.descriptionEl.innerHTML = '';
+      this.playerInfoButton.style.display = 'none';
       this.shipyardButton.style.display = 'none';
+      this.outfitterButton.style.display = 'none';
       this.departButton.style.display = 'none';
-      this.departButton.disabled = true;
       return;
     }
 
     const planet = this.planet;
-    const hasShip = this.player.ships.length > 0;
 
     // Landscape.
     if (planet.landscape) {
@@ -169,8 +213,7 @@ export class PlanetMenuScreen {
     title.textContent = planet.name;
     const meta = document.createElement('div');
     meta.className = 'planet-menu-meta';
-    const attributeLine = planet.attributes.join(' · ');
-    meta.textContent = attributeLine || '—';
+    meta.textContent = planet.attributes.join(' · ') || '—';
     this.headerEl.append(kicker, title, meta);
 
     // Description — only the paragraphs whose conditions match the live store.
@@ -191,15 +234,35 @@ export class PlanetMenuScreen {
     }
 
     // Buttons.
+    this.playerInfoButton.style.display = '';
+    this.playerInfoButton.innerHTML = 'Player Info';
     this.shipyardButton.style.display = planet.shipyards.length > 0 ? '' : 'none';
     this.shipyardButton.disabled = false;
-    this.shipyardButton.innerHTML = 'Shipyard';
+    this.outfitterButton.style.display = planet.outfitters.length > 0 ? '' : 'none';
+    this.outfitterButton.disabled = false;
     this.departButton.style.display = '';
     this.departButton.disabled = !hasShip;
     this.departButton.classList.toggle('is-disabled', !hasShip);
   }
 
-  // --- lifecycle ──────────────────────────────────────────────────────────
+  // --- keyboard + lifecycle ──────────────────────────────────────────────
+
+  handleKey(event: KeyboardEvent): boolean {
+    if (event.key === 'Escape') {
+      if (this.player.ships.length > 0) {
+        this.audio.play('normal');
+        this.onDepart();
+        return true;
+      }
+      return false;
+    }
+    if ((event.key === 'r' || event.key === 'R') && this.failure) {
+      this.audio.play('normal');
+      this.load();
+      return true;
+    }
+    return false;
+  }
 
   mount(): void {
     requestAnimationFrame(() => this.element.classList.add('is-visible'));
@@ -208,22 +271,5 @@ export class PlanetMenuScreen {
   unmount(): void {
     this.destroyed = true;
     this.element.classList.remove('is-visible');
-  }
-
-  handleKey(event: KeyboardEvent): boolean {
-    if (event.key === 'Escape' || event.key === 'd' || event.key === 'D') {
-      if (this.player.ships.length > 0) {
-        this.audio.play('normal');
-        this.onDepart();
-        return true;
-      }
-      return false; // no ship — Depart is not available, stay politely
-    }
-    if ((event.key === 'r' || event.key === 'R') && this.failure) {
-      this.audio.play('normal');
-      this.load();
-      return true;
-    }
-    return false;
   }
 }

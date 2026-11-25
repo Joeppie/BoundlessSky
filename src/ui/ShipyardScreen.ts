@@ -10,11 +10,15 @@ import { createScreen } from './Panel';
 import type { Audio } from '../audio/Audio';
 import type { PlayerInfo } from '../game/PlayerInfo';
 import type { Ship } from '../game/Ship';
+import type { Planet } from '../game/Planet';
 import type { Shipyard } from '../data/ShipyardData';
 
 export interface ShipyardScreenOptions {
   audio: Audio;
   player: PlayerInfo;
+  // The landing planet — the stock comes from this planet's own shipyards,
+  // never from a hardcoded list.
+  planet: Planet;
   // Fresh-load the stock — each call refetches (never returns a cached failure).
   loadStock: () => Promise<Shipyard>;
   onBuy: (model: Ship, givenName: string) => void;
@@ -25,6 +29,7 @@ export class ShipyardScreen {
   readonly element: HTMLElement;
   private audio: Audio;
   private player: PlayerInfo;
+  private planet: Planet;
   private loadStock: () => Promise<Shipyard>;
   private stock: Shipyard | null = null;
   private onBuy: (model: Ship, givenName: string) => void;
@@ -50,6 +55,7 @@ export class ShipyardScreen {
   constructor(options: ShipyardScreenOptions) {
     this.audio = options.audio;
     this.player = options.player;
+    this.planet = options.planet;
     this.loadStock = options.loadStock;
     this.onBuy = options.onBuy;
     this.onLeave = options.onLeave;
@@ -63,13 +69,13 @@ export class ShipyardScreen {
     header.className = 'shipyard-header';
     const kicker = document.createElement('div');
     kicker.className = 'shipyard-kicker';
-    kicker.textContent = `${this.player.planetName || 'New Boston'} — Shipyard`;
+    kicker.textContent = `${this.planet.name} — Shipyard`;
     const title = document.createElement('h1');
     title.className = 'shipyard-title';
     title.textContent = 'Buy your ship';
     const sub = document.createElement('div');
     sub.className = 'shipyard-sub';
-    sub.textContent = 'Three models are within your reach. One purchase, then on to the first quest.';
+    sub.textContent = 'Pick a model, name it, and buy.';
     this.creditsEl = document.createElement('div');
     this.creditsEl.className = 'shipyard-credits';
     this.renderCredits();

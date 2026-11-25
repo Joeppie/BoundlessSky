@@ -16,9 +16,18 @@ import { ConversationScreen } from '../ui/ConversationScreen';
 import { ArrivalScreen } from '../ui/ArrivalScreen';
 import { ShipyardScreen } from '../ui/ShipyardScreen';
 import { PlanetMenuScreen } from '../ui/PlanetMenuScreen';
+import { FlightScreen, type LandableTarget, type WarpRow } from '../ui/FlightScreen';
+import { CornerHud } from '../ui/CornerHud';
+import { PlayerInfoScreen } from '../ui/PlayerInfoScreen';
+import { OutfitterScreen } from '../ui/OutfitterScreen';
 import { loadGameData, type LoadedGameData } from '../data/GameData';
-import { loadShipyard } from '../data/ShipyardData';
+import { loadShipyards } from '../data/ShipyardData';
 import { loadPlanet } from '../data/PlanetData';
+import { loadSystem } from '../data/SystemData';
+import { computeShipInfo, resolveInstalledOutfits } from '../game/ShipInfo';
+import { makeShipPhysics } from '../game/FlightSim';
+import type { Planet } from '../game/Planet';
+import { loadOutfitterStock, loadOutfitCatalog } from '../data/OutfitterData';
 import { loadIntroMission } from '../data/MissionData';
 import { PlayerInfo } from '../game/PlayerInfo';
 import { PilotProfile, DEFAULT_GAMERULES } from '../game/PilotProfile';
@@ -43,10 +52,12 @@ export class Game {
   private data: LoadedGameData | null = null;
   private player = new PlayerInfo();
   private starting = false;
+  private cornerHud: CornerHud;
 
   constructor(appElement: HTMLElement) {
     this.app = appElement;
     this.audio = new Audio();
+    this.cornerHud = new CornerHud();
   }
 
   // --- lifecycle ───────────────────────────────────────────────────────────
@@ -57,6 +68,8 @@ export class Game {
     if (backdrop) {
       this.background.start(backdrop);
     }
+    document.body.appendChild(this.cornerHud.element);
+    this.refreshHud();
 
     const audio = this.audio;
     const loading = new LoadingScreen(audio, () => {
@@ -136,19 +149,141 @@ export class Game {
         this.player.conditions,
         (m) => console.warn(m),
       ),
-      onShipyard: () => this.showScreen(this.shipyardScreen()),
+      onShipyard: (planet) => this.showScreen(this.shipyardScreen(planet)),
+      onOutfitter: (planet) => this.showScreen(this.outfitterScreen(planet)),
+      onPlayerInfo: () => this.showScreen(this.playerInfoScreen()),
       // Depart has no map yet (Milestone 2) — back to the menu for now.
-      onDepart: () => this.showScreen(this.menuScreen()),
+      onDepart: () => this.showScreen(this.flightScreen()),
     });
   }
 
-  private shipyardScreen(): ShipyardScreen {
+  // The flight view — Depart browses the system's flight model (the reference
+  // has no continuous in-system flight; this milestone adds it on top of the
+  // real planet/system data). Starts at the current planet.
+  private flightScreen(): FlightScreen {
+    return new FlightScreen({
+      audio: this.audio,
+      player: this.player,
+      systemName: this.player.systemName || 'Rutilicus',
+      planetName: this.player.planetName || 'New Boston',
+      loadFlight: () => this.loadFlightScene(),
+      loadDestinations: (system) => this.loadWarpDestinations(system),
+      onLand: (spec, system) => {
+        this.player.systemName = system.name;
+        this.player.planetName = spec.name;
+        this.showScreen(this.planetMenuScreen());
+      },
+      onWarp: (system, planetName) => {
+        this.player.systemName = system.name;
+        this.player.planetName = planetName;
+        this.showScreen(this.flightScreen());
+      },
+      onAbort: () => this.showScreen(this.planetMenuScreen()),
+      onMenu: () => this.showScreen(this.menuScreen()),
+    });
+  }
+
+  private async loadFlightScene(): Promise<{
+    system: import('../game/System').System;
+    spawnPlanet: LandableTarget;
+    landable: LandableTarget[];
+    physics: ReturnType<typeof makeShipPhysics>;
+    hasHyperdrive: boolean;
+  }> {
+    const systemName = this.player.systemName || 'Rutilicus';
+    const planetName = this.player.planetName || 'New Boston';
+    const system = await loadSystem(systemName, (m) => console.warn(m));
+    const spawnSystemPlanet = system.planets.find(p => p.name === planetName);
+    if (!spawnSystemPlanet) {
+      throw new Error(`planet "${planetName}" not found in system "${systemName}"`);
+    }
+    const spec = await loadPlanet(planetName, this.player.conditions, (m) => console.warn(m));
+    const spawnPlanet: LandableTarget = { planet: spawnSystemPlanet, spec };
+
+    // Every named planet in the system is landable (with its spec from the real file).
+    const landable: LandableTarget[] = [];
+    for (const planet of system.planets) {
+      if (!planet.name) continue;
+      try {
+        const planetSpec = await loadPlanet(planet.name, this.player.conditions, (m) => console.warn(m));
+        landable.push({ planet, spec: planetSpec });
+      } catch {
+        // A named world the real file can't define — not landable here.
+      }
+    }
+
+    const flagship = this.player.flagship();
+    if (!flagship) throw new Error('no flagship to fly');
+    const catalog = await loadOutfitCatalog((m) => console.warn(m));
+    const installed = resolveInstalledOutfits(flagship.model, catalog, (m) => console.warn(m));
+    const info = computeShipInfo(flagship.model, installed);
+    const physics = makeShipPhysics(flagship.model, info.thrust, info.turn, info.emptyMass);
+    const hasHyperdrive = installed.some(i => (i.outfit.attributes['hyperdrive'] ?? 0) > 0);
+
+    return { system, spawnPlanet, landable, physics, hasHyperdrive };
+  }
+
+  // Warp destinations — the system's jump-neighbor systems with landable
+  // named planets (with their specs). Systems with no named planet are
+  // listed as disabled rows, honestly.
+  private async loadWarpDestinations(system: import('../game/System').System): Promise<WarpRow[]> {
+    const rows: WarpRow[] = [];
+    for (const linkName of system.links) {
+      let neighbor: import('../game/System').System;
+      try {
+        neighbor = await loadSystem(linkName, (m) => console.warn(m));
+      } catch {
+        continue; // a missing jump neighbor — not offered
+      }
+      const before = rows.length;
+      for (const planet of neighbor.planets) {
+        if (!planet.name) continue;
+        try {
+          const spec = await loadPlanet(planet.name, this.player.conditions, (m) => console.warn(m));
+          rows.push({ system: neighbor, planet, spec, disabledReason: null });
+        } catch {
+          // A named planet the real file can't define — not landable here.
+        }
+      }
+      if (rows.length === before) {
+        rows.push({
+          system: neighbor,
+          planet: null,
+          spec: null,
+          disabledReason: 'no landable named planet here',
+        });
+      }
+    }
+    return rows;
+  }
+
+  private outfitterScreen(planet: Planet): OutfitterScreen {
+    return new OutfitterScreen({
+      audio: this.audio,
+      player: this.player,
+      planet: planet,
+      loadStock: () => loadOutfitterStock(planet.outfitters, (m) => console.warn(m)),
+      onBack: () => this.showScreen(this.planetMenuScreen()),
+    });
+  }
+
+  private playerInfoScreen(): PlayerInfoScreen {
+    return new PlayerInfoScreen({
+      audio: this.audio,
+      player: this.player,
+      loadCatalog: () => loadOutfitCatalog((m) => console.warn(m)),
+      onDone: () => this.showScreen(this.planetMenuScreen()),
+    });
+  }
+
+  private shipyardScreen(planet: Planet): ShipyardScreen {
     // The stock loads lazily; the screen renders it when the promise resolves.
     // Every call fetches fresh so the screen's Retry button re-runs a real load.
     return new ShipyardScreen({
       audio: this.audio,
       player: this.player,
-      loadStock: () => loadShipyard('Basic Ships', (m) => console.warn(m)),
+      planet: planet,
+      loadStock: () => loadShipyards(planet.shipyards, (m) => console.warn(m)),
       onBuy: (model, givenName) => this.afterBuy(model, givenName),
       onLeave: () => this.showScreen(this.planetMenuScreen()),
     });
@@ -244,9 +379,14 @@ export class Game {
 
   // --- shared helpers ──────────────────────────────────────────────────────
 
+  private refreshHud(): void {
+    this.cornerHud.setPlayer(this.player.isLoaded() ? this.player : null);
+  }
+
   private showScreen(screen: Screen): void {
     const current = this.screen;
     this.screen = screen;
+    this.refreshHud();
 
     // Drop stale screens that were left mid-exit by a previous, even later
     // transition — fast chained screens would otherwise pile up in the DOM.

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { parseData } from './DataParser.ts';
-import { parseShipyard } from './ShipyardData.ts';
+import { parseShipyard, parseShipyards } from './ShipyardData.ts';
 
 // Tests mirror the reference's "Basic Ships" stock (New Boston shipyard) —
 // the only stock this milestone serves.
@@ -29,5 +29,29 @@ describe('ShipyardData (from sales.txt + ships.txt)', () => {
     const stock = parseShipyard(bogus, ships, 'Bogus', (m) => warnings.push(m));
     expect(stock.ships.map(s => s.name)).toEqual(['Shuttle']);
     expect(warnings.some(w => w.includes('Not A Real Ship'))).toBe(true);
+  });
+});
+
+
+describe('parseShipyards (the union of a planet\'s shops)', () => {
+  const sales = parseData(readFileSync('endless-sky/data/human/sales.txt', 'utf8'));
+  const ships = parseData(readFileSync('endless-sky/data/human/ships.txt', 'utf8'));
+
+  it('resolves a single shop to the same three models', () => {
+    const stock = parseShipyards(sales, ships, ['Basic Ships']);
+    expect(stock.name).toBe('Basic Ships');
+    expect(stock.ships.map(s => s.name)).toEqual(['Shuttle', 'Sparrow', 'Star Barge']);
+  });
+
+  it('unions two shops and dedupes the same model across both', () => {
+    // "Common Outfits" and "Basic Ships" overlap on nothing in sales.txt, but
+    // the dedup path is exercised directly via a synthetic shop list.
+    const bogus = parseData('shipyard "Bogus A"\n\t"Shuttle"\n\t"Sparrow"\n\nshipyard "Bogus B"\n\t"Shuttle"\n\t"Star Barge"');
+    const stock = parseShipyards(bogus, ships, ['Bogus A', 'Bogus B']);
+    expect(stock.ships.map(s => s.name)).toEqual(['Shuttle', 'Sparrow', 'Star Barge']);
+  });
+
+  it('throws a clear error when a named shop does not exist', () => {
+    expect(() => parseShipyards(sales, ships, ['No Such Shipyard'])).toThrow(/No Such Shipyard/);
   });
 });

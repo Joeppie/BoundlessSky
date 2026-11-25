@@ -102,7 +102,9 @@ test('new pilot: start a scenario, buy a ship, accept the first quest', async ({
   await expect(page.locator('.planet-menu-screen')).toBeVisible({ timeout: 15_000 });
   await expect(page.locator('.planet-menu-title')).toHaveText('New Boston');
   await expect(page.locator('.planet-menu-depart')).toBeEnabled();
-  await page.keyboard.press('Escape'); // Depart → menu
+  await page.keyboard.press('Escape'); // Depart → flight view
+  await expect(page.locator('.flight-screen')).toBeVisible({ timeout: 15_000 });
+  await page.locator('.flight-menu-button').click(); // → menu
 
   // Back at the menu — the pilot is loaded.
   await expect(page.locator('.menu-screen')).toBeVisible();
@@ -173,6 +175,8 @@ test('new pilot: decline path keeps the pilot at the menu without a quest', asyn
   await expect(page.locator('.planet-menu-screen')).toBeVisible({ timeout: 15_000 });
   await expect(page.locator('.planet-menu-title')).toHaveText('New Boston');
   await page.locator('.planet-menu-depart').click();
+  await expect(page.locator('.flight-screen')).toBeVisible({ timeout: 15_000 });
+  await page.locator('.flight-menu-button').click();
   await expect(page.locator('.menu-screen')).toBeVisible({ timeout: 15_000 });
   const state = await debugPlayer(page);
   expect(state.pilotName).toBe('Bjorn Karlsson');

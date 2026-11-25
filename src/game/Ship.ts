@@ -5,6 +5,13 @@
 
 import type { DataNode } from '../data/DataNode.ts';
 
+export interface ShipOutfitEntry {
+  // The outfit name as it appears in ships.txt, e.g. "X1700 Ion Thruster".
+  name: string;
+  // How many of this outfit are installed (ships.txt writes "Name" or "Name" <count>).
+  count: number;
+}
+
 export class Ship {
   // The model name as it appears in ships.txt, e.g. "Shuttle".
   name = '';
@@ -18,11 +25,18 @@ export class Ship {
   bunks = 0;
   mass = 0;
   drag = 0;
+  heatDissipation = 0;
   fuelCapacity = 0;
   cargoSpace = 0;
   outfitSpace = 0;
   weaponCapacity = 0;
   engineCapacity = 0;
+  // The gun/turret hardpoint declarations (without an outfit installed yet —
+  // the reference counts these from the ship's "gun"/"turret" lines).
+  gunPorts = 0;
+  turretMounts = 0;
+  // The outfits installed in the ship's definition ("outfits" block).
+  outfits: ShipOutfitEntry[] = [];
 
   get isValid(): boolean {
     return this.name.length > 0;
@@ -62,11 +76,28 @@ export function parseShip(node: DataNode): Ship {
       ship.bunks = numericStat(child, 'bunks');
       ship.mass = numericStat(child, 'mass');
       ship.drag = numericStat(child, 'drag');
+      ship.heatDissipation = numericStat(child, 'heat dissipation');
       ship.fuelCapacity = numericStat(child, 'fuel capacity');
       ship.cargoSpace = numericStat(child, 'cargo space');
       ship.outfitSpace = numericStat(child, 'outfit space');
       ship.weaponCapacity = numericStat(child, 'weapon capacity');
       ship.engineCapacity = numericStat(child, 'engine capacity');
+    } else if (key === 'gun') {
+      ship.gunPorts += 1;
+    } else if (key === 'turret') {
+      ship.turretMounts += 1;
+    } else if (key === 'outfits') {
+      for (const outfitNode of child.children) {
+        const outfitName = outfitNode.tokenOr(0);
+        if (!outfitName) continue;
+        const count = outfitNode.getSize() >= 2
+          ? Number(outfitNode.tokenOr(1))
+          : 1;
+        ship.outfits.push({
+          name: outfitName,
+          count: Number.isFinite(count) && count > 0 ? count : 1,
+        });
+      }
     }
   }
   // Ship blocks carry no children beyond attributes that we read; the rest

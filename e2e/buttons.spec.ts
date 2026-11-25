@@ -68,8 +68,10 @@ test('the whole new-pilot flow is drivable with clicks', async ({ page }) => {
   await expect(page.locator('.planet-menu-title')).toHaveText('New Boston');
   await expect(page.locator('.planet-menu-depart')).toBeEnabled();
 
-  // Depart back to the menu — pilot card shows the name.
+  // Depart back to the menu — the flight view opens, then Menu → menu.
   await page.locator('.planet-menu-depart').click();
+  await expect(page.locator('.flight-screen')).toBeVisible({ timeout: 15_000 });
+  await page.locator('.flight-menu-button').click();
   await expect(page.locator('.menu-screen')).toBeVisible({ timeout: 15_000 });
   await expect(page.locator('.menu-pilot-name')).toContainText('Elena Voss');
 

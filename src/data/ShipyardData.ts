@@ -1,9 +1,7 @@
-// The shipyard — the "Basic Ships" stock and the parsed ship models it sells.
-//
-// Milestone-scoped: the one shipyard the default flow needs (New Boston's
-// "Basic Ships": Shuttle / Sparrow / Star Barge from `human/sales.txt`), parsed
-// lazily and served from memory. Everything else (licenses, storage, sale
-// of ships) is Milestone 2+.
+// The shipyard — the stock the planet's named shipyards sell, parsed lazily
+// and served from memory. Milestone-scoped: one purchase, no licenses,
+// fleet management or storage (Milestone 2+). Every call fetches fresh — no
+// memoized promise — so a failed load can be retried by simply calling again.
 
 import { parseData } from './DataParser';
 import type { DataNode } from './DataNode';
@@ -51,11 +49,35 @@ export function parseShipyard(salesNode: DataNode, shipsNode: DataNode, name: st
   return { name, ships };
 }
 
-// Load the named shipyard's stock, resolving each entry to its parsed ship.
-// Every call fetches fresh — no memoized promise — so a failed load can be
-// retried by simply calling again. The fetch is bounded (see fetchText).
-export async function loadShipyard(
-  name: string,
+// Resolve the stock of the named shipyards — the union of their ships,
+// deduped by model name, like the reference's shipyardStock. Exported so
+// tests can feed the real data in. Throws a clear error when any named shop
+// is missing — the planet cannot serve it.
+export function parseShipyards(
+  salesNode: DataNode,
+  shipsNode: DataNode,
+  names: string[],
+  onWarn?: (message: string) => void,
+): Shipyard {
+  const ships: Ship[] = [];
+  const seen = new Set<string>();
+  for (const name of names) {
+    const shipyard = parseShipyard(salesNode, shipsNode, name, onWarn);
+    for (const ship of shipyard.ships) {
+      if (!seen.has(ship.name)) {
+        seen.add(ship.name);
+        ships.push(ship);
+      }
+    }
+  }
+  return { name: names.join(' / '), ships };
+}
+
+// Load the stock of the named shipyards, resolving each entry to its parsed
+// ship. Every call fetches fresh — no memoized promise — so a failed load can
+// be retried by simply calling again. The fetch is bounded (see fetchText).
+export async function loadShipyards(
+  names: string[],
   onWarn?: (message: string) => void,
 ): Promise<Shipyard> {
   const [salesText, shipsText] = await Promise.all([
@@ -64,5 +86,5 @@ export async function loadShipyard(
   ]);
   const salesNode = parseData(salesText, { onWarn });
   const shipsNode = parseData(shipsText, { onWarn });
-  return parseShipyard(salesNode, shipsNode, name, onWarn);
+  return parseShipyards(salesNode, shipsNode, names, onWarn);
 }
